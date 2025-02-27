@@ -1,6 +1,3 @@
 fastapi
 uvicorn
-numpy  
-math 
-json
-os
+numpy
