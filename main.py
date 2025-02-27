@@ -8,7 +8,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["http://localhost:3000/", 'https://ui-baghchal.vercel.app/'],  # Allow all origins
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],  # Explicitly allow only required methods
     allow_headers=["Content-Type", "Authorization"],  # Explicit headers
