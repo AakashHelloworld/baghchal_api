@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+numpy  # If you're using numpy
+math 
+json
+os
