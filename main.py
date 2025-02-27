@@ -39,7 +39,7 @@ def read_root():
 
 
 @app.post("/get_moves_tiger")
-def get_moves(state: GameState):
+def get_moves_tiger(state: GameState):
     baghchal_info = {
         "tigers": state.tigers,
         "total_goats": state.total_goats,
@@ -59,7 +59,7 @@ def get_moves(state: GameState):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/get_moves_goat")
-def get_moves(state: GameState):
+def get_moves_goat(state: GameState):
     baghchal_info = {
         "tigers": state.tigers,
         "total_goats": state.total_goats,
