@@ -19,7 +19,7 @@ baghchal = Baghchal()
 
 args = {
     'C': 1.2,
-    'num_searches': 100000,
+    'num_searches': 1000,
     'max_depth': 10
 }
 mcts = MCTS(baghchal, args)
@@ -72,7 +72,7 @@ def get_moves_goat(state: GameState):
     try:
         print("Received board:", board)
         print("Baghchal info:", baghchal_info)
-
+        print("Thinking...")
         mcts_probs = mcts.search(board, baghchal_info, -1)
         print("Raw MCTS Output:", mcts_probs)  
 
