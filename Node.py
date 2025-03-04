@@ -5,7 +5,7 @@ from StateDisplay import *
 import json as JSON
 
 class Node:
-    def __init__(self, game, args, state, player, baghchalInforation, parent=None, action_taken=None):
+    def __init__(self, game, args, state, player, baghchalInforation, turn,  parent=None, action_taken=None):
         self.game = game
         self.args = args
         self.state = state
@@ -17,12 +17,14 @@ class Node:
         self.visit_count = 0
         self.value_sum = 0
         self.expandable_moves = game.get_possible_moves(state, -player, baghchalInforation['total_goats'], baghchalInforation['tigers'])
+        self.turn = turn
 
         # 🔹 Track position history to prevent repeated states
         self.position_history = {} if parent is None else dict(parent.position_history)
 
         # 🔹 Track stagnation (if no progress, game might be a draw)
         self.moves_without_progress = parent.moves_without_progress if parent else 0
+        
 
     def calculate_distance(self, pos1, pos2):
         return math.sqrt((pos1[0]-pos2[0])**2 + (pos1[1]-pos2[1])**2)
@@ -53,7 +55,92 @@ class Node:
             "children": [child.to_react_d3_tree() for child in self.children] if self.children else []
         }
     
-    def evaluate(self):
+    def evaluate_when_goat(self):
+        # Base score
+        score = 0
+        
+        # HIGHEST PRIORITY: Captured goats
+        score += self.baghchalInforation['capture_goat'] * 150
+        
+        # SECOND PRIORITY: Potential captures
+        potential_captures = 0
+        for tiger_pos in self.baghchalInforation['tigers']:
+            tx, ty = tiger_pos
+            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
+
+                # Check adjacent space
+                nx, ny = tx + dx, ty + dy
+                if 0 <= nx < 5 and 0 <= ny < 5 and self.state[nx, ny] == 1:  # Goat in adjacent space
+                    # Check space beyond for potential capture
+                    jx, jy = tx + 2*dx, ty + 2*dy
+                    if 0 <= jx < 5 and 0 <= jy < 5 and self.state[jx, jy] == 0:  # Empty space beyond
+                        potential_captures += 1
+        
+        score += potential_captures * 50  # Very high reward for potential captures
+        
+        # THIRD PRIORITY: Tiger mobility
+        mobile_tigers = 4 - self.game.tiger_blocked_num(self.state.copy(), self.baghchalInforation['tigers'].copy())
+        score += mobile_tigers * 30
+        
+        # FOURTH PRIORITY: Position only matters if no captures are possible
+        central_positions = [(2, 2)]
+        diagonal_positions = [(1, 1), (3, 1), (1, 3), (3, 3)]
+        edge_positions = [(0, 0), (4, 0), (0, 4), (4, 4)]
+        
+        center_tigers = sum(1 for pos in self.baghchalInforation['tigers'] if pos in central_positions)
+        diagonal_tigers = sum(1 for pos in self.baghchalInforation['tigers'] if pos in diagonal_positions)
+        corner_tigers = sum(1 for pos in self.baghchalInforation['tigers'] if pos in edge_positions)
+        
+        # Reduce the importance of positional play compared to captures
+        score += center_tigers * 10
+        score += diagonal_tigers * 5
+        score += corner_tigers * 2
+        
+        # GOAT METRICS
+        goat_positions = [(x, y) for x in range(5) for y in range(5) if self.state[x, y] == 1]
+        
+        # Goats on board and placement are important for goats
+        goats_on_board = self.baghchalInforation['goats_on_board']
+        score -= goats_on_board * 80
+        
+        goats_remaining = self.baghchalInforation['total_goats']
+        score -= goats_remaining * 10
+        
+        # Check if goats are creating blocking formations around tigers
+        tigers_being_surrounded = 0
+        for tiger_pos in self.baghchalInforation['tigers']:
+            tx, ty = tiger_pos
+            goat_neighbors = 0
+            possible_moves = 0
+            
+            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
+                # Only check valid directions
+                if (tx + ty) % 2 != 0 and dx != 0 and dy != 0:
+                    continue
+                    
+                nx, ny = tx + dx, ty + dy
+                if 0 <= nx < 5 and 0 <= ny < 5:
+                    possible_moves += 1
+                    if self.state[nx, ny] == 1:  # Goat
+                        goat_neighbors += 1
+            
+            # Calculate how surrounded this tiger is
+            if possible_moves > 0:
+                tiger_surrounded_ratio = goat_neighbors / possible_moves
+                tigers_being_surrounded += tiger_surrounded_ratio
+        
+        # Reduce score for surrounded tigers (good for goats)
+        score -= tigers_being_surrounded * 25
+        
+        # Special case: IMMEDIATE CAPTURE opportunity takes absolute precedence
+        if potential_captures > 0:
+            # Add a huge bonus to ensure capturing is always preferred
+            score += 1000
+        
+        # Return score from perspective of current player
+        return score * -self.player
+    
+    def evaluate_when_tiger(self):
         score = 0
 
         tiger_alive = 4 - self.game.tiger_blocked_num(self.state.copy(), self.baghchalInforation['tigers'].copy())
@@ -117,7 +204,7 @@ class Node:
             'goats_on_board': goats_on_board,
             'capture_goat': capture_goat,
             'tigers': tigers.copy()
-        }, parent=self, action_taken=action)
+        }, turn=self.turn, parent=self, action_taken=action)
 
         # 🔹 Carry forward position history and stagnation
         child.position_history = new_position_history
@@ -180,7 +267,10 @@ class Node:
             depth += 1
 
         # If no winner, return evaluation score
-        return self.evaluate()
+        if(self.turn == -1):
+            return self.evaluate_when_goat()
+        else:
+            return self.evaluate_when_tiger()
 
     def backpropagate(self, value):
         self.value_sum += value

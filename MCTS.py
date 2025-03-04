@@ -8,8 +8,8 @@ class MCTS:
         self.args = args
         
     def search(self, state, baghchalInforation, player):
-
-        root = Node(self.game, self.args, state, player, baghchalInforation)
+        turn = player
+        root = Node(self.game, self.args, state, player, baghchalInforation, turn)
 
         for _ in range(self.args['num_searches']):
 
