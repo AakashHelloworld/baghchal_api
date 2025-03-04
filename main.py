@@ -254,7 +254,23 @@ def invite(inviter_username: str, invitee_username: str, turn: str, inviter_rati
 def view_invites(request_username: str, db: Session = Depends(get_db)): 
     invites = db.exec(select(Invite).where(Invite.invitee == request_username)).all()
     return {"invites": invites}
+
+
+@app.post("/update-rating/{winner_username}/{loser_username}/{is_draw}")
+def update_rating(winner_username: str, loser_username: str, is_draw: bool, db: Session = Depends(get_db)):
+    if not is_draw: 
+        winner_user = db.exec(select(User).where(User.username == winner_username)).first() 
+        loser_user = db.exec(select(User).where(User.username == loser_username)).first() 
+
+        score = 10
+        winner_user.rating += score 
+        
+        if loser_user.rating >= 9:
+            loser_user.rating -= score 
     
+    return {"message": "User rating updated!"}
+
+
 
 if __name__ == "__main__":
     create_db_and_tables()
