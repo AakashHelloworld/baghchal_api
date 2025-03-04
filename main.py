@@ -252,25 +252,43 @@ def invite(inviter_username: str, invitee_username: str, turn: str, inviter_rati
 
 @app.get("/view-invites/{request_username}")
 def view_invites(request_username: str, db: Session = Depends(get_db)): 
-    invites = db.exec(select(Invite).where(Invite.invitee == request_username)).all()
+    invites = db.exec(select(Invite).where(Invite.invitee == request_username, Invite.status == "SENT")).all()
     return {"invites": invites}
 
 
-@app.post("/update-rating/{winner_username}/{loser_username}/{is_draw}")
-def update_rating(winner_username: str, loser_username: str, is_draw: bool, db: Session = Depends(get_db)):
-    if not is_draw: 
-        winner_user = db.exec(select(User).where(User.username == winner_username)).first() 
-        loser_user = db.exec(select(User).where(User.username == loser_username)).first() 
-
-        score = 10
-        winner_user.rating += score 
-        
-        if loser_user.rating >= 9:
-            loser_user.rating -= score 
+@app.post("/update-rating/{username}/{score}")
+def update_rating(username: str, score: int, db: Session = Depends(get_db)):
+    print("username", username, score)
+    user = db.exec(select(User).where(User.username == username)).first() 
+    print("database user", user)
     
-    return {"message": "User rating updated!"}
+    user.rating += score
+    if user.rating < 0:
+        user.rating = 0
+    
+    db.commit()
+    return {"rating": user.rating}
 
 
+@app.delete("/remove-notification/{notification_id}/{status}")
+def remove_notification(notification_id: int, status: str, db: Session = Depends(get_db)):
+    notification = db.exec(select(Invite).where(Invite.id == notification_id)).first() 
+    notification.status = status
+    db.commit()
+    return {"message": "Notification updated!"}
+
+
+@app.get("/notification-status/{notification_id}/{username}")
+def notification_status(notification_id: int, username: str, db: Session = Depends(get_db)): 
+    notification = db.exec(select(Invite).where(Invite.id == notification_id, Invite.invitee == username)).first() 
+
+    if notification:
+        if notification.invitee == username and notification.status == "REJECTED":
+            return {"status": "REJECTED", "notification": notification.model_dump()} 
+
+    return {"status": "SENT"} 
+
+ 
 
 if __name__ == "__main__":
     create_db_and_tables()

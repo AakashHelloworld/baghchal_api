@@ -26,6 +26,7 @@ class Invite(SQLModel, table=True):
     invitee: str = Field(foreign_key="user.username")
     inviter_link: str | None = Field(default="")
     invitee_link: str | None = Field(default="")
+    status: str | None = Field(default="SENT") # SENT or ACCEPTED or REJECTED
 
 
 class FriendRequestCreate(BaseModel):
