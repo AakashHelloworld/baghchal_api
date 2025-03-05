@@ -21,7 +21,7 @@ baghchal = Baghchal()
 
 args = {
     'C': 1.2,
-    'num_searches': 20000,
+    'num_searches': 3000,
     'max_depth': 10
 }
 mcts_goat = MCTS_GOAT(baghchal, args)
@@ -99,35 +99,4 @@ def get_moves_goat(state: GameState):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-
-
-
-
-
-# state = [[1, 1, -1, 0, 0],
-#          [1, 1, -1, 0, 0],
-#           [1, 0, -1, 1, 1],
-#           [1, 0, 0, 1, 1],
-#          [-1, 1, 1, 1, 1]]
-
-# board = np.array(state)
-
-# baghchal_info = {
-#         "tigers":[[3, 1], [2, 4], [3, 2], [2, 0]] ,
-#         "total_goats": 0,
-#         "goats_on_board": 20,
-#         "capture_goat": 1,        
-#     }
-
-# mcts_probs = mcts_goat.search(board, baghchal_info, 1)
-
-# print(mcts_probs)
-
-# if isinstance(mcts_probs, tuple) and isinstance(mcts_probs[0], int):
-#     formatted_moves = list(mcts_probs) 
-# elif isinstance(mcts_probs, list) or isinstance(mcts_probs, tuple):
-#     formatted_moves = [list(move) for move in mcts_probs]
-# print(formatted_moves)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
