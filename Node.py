@@ -305,10 +305,7 @@ class Node:
             depth += 1
 
         # If no winner, return evaluation score
-        if(self.turn == -1):
-            return self.evaluate_when_goat()
-        else:
-            return self.evaluate_when_tiger()
+        return self.evaluate_when_goat()
 
     def backpropagate(self, value):
         self.value_sum += value

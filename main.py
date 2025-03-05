@@ -21,7 +21,7 @@ baghchal = Baghchal()
 
 args = {
     'C': 1.2,
-    'num_searches': 10000,
+    'num_searches': 20000,
     'max_depth': 10
 }
 mcts = MCTS(baghchal, args)
