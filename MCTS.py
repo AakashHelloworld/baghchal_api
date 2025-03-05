@@ -3,13 +3,14 @@ import json
 import numpy as np
 
 class MCTS:
-    def __init__(self, game, args):
+    def __init__(self, game, args, turn):
         self.game = game
         self.args = args
+        self.turn = turn
         
     def search(self, state, baghchalInforation, player):
         turn = player
-        root = Node(self.game, self.args, state, player, baghchalInforation, turn)
+        root = Node(self.game, self.args, state, player, baghchalInforation, self.turn)
 
         for _ in range(self.args['num_searches']):
 
@@ -42,4 +43,4 @@ class MCTS:
                 best_action = child.action_taken
 
         return best_action
-    
+  

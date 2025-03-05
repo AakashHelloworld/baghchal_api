@@ -24,7 +24,8 @@ args = {
     'num_searches': 20000,
     'max_depth': 10
 }
-mcts = MCTS(baghchal, args)
+mcts_goat = MCTS(baghchal, args, -1)
+mcts_tiger = MCTS(baghchal, args, 1)
 
 
 class GameState(BaseModel):
@@ -51,7 +52,7 @@ def get_moves_tiger(state: GameState):
 
     board = np.array(state.board)
     try:
-        mcts_probs = mcts.search(board, baghchal_info, 1)
+        mcts_probs = mcts_tiger.search(board, baghchal_info, 1)
         
         mcts_probs_array = [[x[0], x[1]] for x in mcts_probs]
         
@@ -75,7 +76,7 @@ def get_moves_goat(state: GameState):
         print("Received board:", board)
         print("Baghchal info:", baghchal_info)
         print("Thinking...")
-        mcts_probs = mcts.search(board, baghchal_info, -1)
+        mcts_probs = mcts_goat.search(board, baghchal_info, -1)
         print("Raw MCTS Output:", mcts_probs)  
 
         if isinstance(mcts_probs, tuple) and isinstance(mcts_probs[0], int):

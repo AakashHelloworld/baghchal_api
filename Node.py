@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import random
-from StateDisplay import *
 import json as JSON
 
 class Node:
@@ -305,7 +304,10 @@ class Node:
             depth += 1
 
         # If no winner, return evaluation score
-        return self.evaluate_when_goat()
+        if self.turn == -1:
+            return self.evaluate_when_goat()
+        else:
+            return self.evaluate_when_tiger()
 
     def backpropagate(self, value):
         self.value_sum += value
