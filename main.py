@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from pydantic import BaseModel
 from Baghchal import Baghchal
-from MCTS import MCTS
+from MCTS import MCTS_GOAT, MCTS_TIGER
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 
@@ -24,8 +24,8 @@ args = {
     'num_searches': 20000,
     'max_depth': 10
 }
-mcts_goat = MCTS(baghchal, args, -1)
-mcts_tiger = MCTS(baghchal, args, 1)
+mcts_goat = MCTS_GOAT(baghchal, args)
+mcts_tiger = MCTS_TIGER(baghchal, args)
 
 
 class GameState(BaseModel):

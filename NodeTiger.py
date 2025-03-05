@@ -3,8 +3,8 @@ import math
 import random
 import json as JSON
 
-class Node:
-    def __init__(self, game, args, state, player, baghchalInforation, turn,  parent=None, action_taken=None):
+class NodeTiger:
+    def __init__(self, game, args, state, player, baghchalInforation,  parent=None, action_taken=None):
         self.game = game
         self.args = args
         self.state = state
@@ -16,7 +16,6 @@ class Node:
         self.visit_count = 0
         self.value_sum = 0
         self.expandable_moves = game.get_possible_moves(state, -player, baghchalInforation['total_goats'], baghchalInforation['tigers'])
-        self.turn = turn
 
         # 🔹 Track position history to prevent repeated states
         self.position_history = {} if parent is None else dict(parent.position_history)
@@ -54,128 +53,6 @@ class Node:
             "children": [child.to_react_d3_tree() for child in self.children] if self.children else []
         }
     
-    def evaluate_when_goat(self):
-        # Base score
-        score = 0
-        
-        # TIGER METRICS
-        # Mobile tigers (not blocked)
-        mobile_tigers = 4 - self.game.tiger_blocked_num(self.state.copy(), self.baghchalInforation['tigers'].copy())
-        score += mobile_tigers * 15  # Increased from 10
-        
-        # Captured goats
-        score += self.baghchalInforation['capture_goat'] * 50  # Increased from 40
-        
-        # Tigers in strategic positions (central and diagonal positions)
-        central_positions = [(2, 2)]  # Center is most powerful
-        diagonal_positions = [(1, 1), (3, 1), (1, 3), (3, 3)]  # Next most powerful
-        edge_positions = [(0, 0), (4, 0), (0, 4), (4, 4)]  # Corner positions
-        
-        # Weighted position scoring
-        center_tigers = sum(1 for pos in self.baghchalInforation['tigers'] if pos in central_positions)
-        diagonal_tigers = sum(1 for pos in self.baghchalInforation['tigers'] if pos in diagonal_positions)
-        corner_tigers = sum(1 for pos in self.baghchalInforation['tigers'] if pos in edge_positions)
-        
-        score += center_tigers * 20  # Central position is very valuable
-        score += diagonal_tigers * 12  # Diagonal positions are valuable
-        score += corner_tigers * 5   # Corner positions are less valuable but still useful
-        
-        # Potential capture opportunities (tigers adjacent to goats with empty space beyond)
-        potential_captures = 0
-        for tiger_pos in self.baghchalInforation['tigers']:
-            tx, ty = tiger_pos
-            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
-                # Only check valid directions based on position type (diagonal or orthogonal)
-                if (tx + ty) % 2 != 0 and dx != 0 and dy != 0:
-                    continue  # Skip diagonal directions for non-diagonal positions
-                    
-                # Check adjacent space
-                nx, ny = tx + dx, ty + dy
-                if 0 <= nx < 5 and 0 <= ny < 5 and self.state[nx, ny] == 1:  # Goat in adjacent space
-                    # Check space beyond for potential capture
-                    jx, jy = tx + 2*dx, ty + 2*dy
-                    if 0 <= jx < 5 and 0 <= jy < 5 and self.state[jx, jy] == 0:  # Empty space beyond
-                        potential_captures += 1
-        
-        score += potential_captures * 8  # Reward potential captures
-        
-        # GOAT METRICS
-        # Goat formation patterns - groups of goats that block tigers
-        goat_positions = [(x, y) for x in range(5) for y in range(5) if self.state[x, y] == 1]
-        
-        # Defensive formations (measure of goats protecting each other)
-        defensive_strength = 0
-        for g1 in goat_positions:
-            protected = False
-            g1x, g1y = g1
-            for g2 in goat_positions:
-                if g1 == g2:
-                    continue
-                g2x, g2y = g2
-                # Check if goats are adjacent or within 2 spaces (protection)
-                if abs(g1x - g2x) <= 1 and abs(g1y - g2y) <= 1:
-                    protected = True
-                    break
-            if protected:
-                defensive_strength += 1
-        
-        # Reduce the score (beneficial for goats)
-        score -= defensive_strength * 8
-        
-        # Goat placement on the board
-        goats_on_board = self.baghchalInforation['goats_on_board']
-        score -= goats_on_board * 5  # More goats on board is good for goats
-        
-        # Goats remaining to be placed
-        goats_remaining = self.baghchalInforation['total_goats'] 
-        score -= goats_remaining * 8  # Penalize goats left off the board
-        
-        # Board control - number of empty spaces surrounded by goats
-        controlled_spaces = 0
-        for x in range(5):
-            for y in range(5):
-                if self.state[x, y] == 0:  # Empty space
-                    goat_neighbors = 0
-                    for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
-                        # Only check valid directions based on position type
-                        if (x + y) % 2 != 0 and dx != 0 and dy != 0:
-                            continue
-                            
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < 5 and 0 <= ny < 5 and self.state[nx, ny] == 1:  # Goat in adjacent space
-                            goat_neighbors += 1
-                    
-                    if goat_neighbors >= 2:  # Space controlled by goats
-                        controlled_spaces += 1
-        
-        score -= controlled_spaces * 5  # Controlled space benefits goats
-        
-        # Tiger isolation (tigers that are far from each other)
-        tiger_isolation = 0
-        for i, t1 in enumerate(self.baghchalInforation['tigers']):
-            for j, t2 in enumerate(self.baghchalInforation['tigers']):
-                if i < j:  # Avoid counting pairs twice
-                    tiger_isolation += self.calculate_distance(t1, t2)
-        
-        score -= tiger_isolation * 2  # Isolated tigers are less effective
-        
-        # Game progression factor - adjust strategy based on game phase
-        total_pieces = goats_on_board + len(self.baghchalInforation['tigers'])
-        game_phase = min(1.0, total_pieces / 20)  # 0 to 1 scale representing game progression
-        
-        # In early game, prioritize positioning; in late game, prioritize captures
-        position_weight = 1.0 - game_phase
-        capture_weight = game_phase
-        
-        # Apply weights to score components
-        positional_component = score * position_weight
-        capture_component = self.baghchalInforation['capture_goat'] * 30 * capture_weight
-        
-        # Final weighted score
-        final_score = positional_component + capture_component
-        
-        # Scale by current player perspective
-        return final_score * -self.player
     
     def evaluate_when_tiger(self):
         score = 0
@@ -236,12 +113,12 @@ class Node:
         if new_position_history[state_key] >= 3:
             self.moves_without_progress += 1  
 
-        child = Node(self.game, self.args, child_state, next_player, {
+        child = NodeTiger(self.game, self.args, child_state, next_player, {
             'total_goats': total_goats,
             'goats_on_board': goats_on_board,
             'capture_goat': capture_goat,
             'tigers': tigers.copy()
-        }, turn=self.turn, parent=self, action_taken=action)
+        }, parent=self, action_taken=action)
 
         # 🔹 Carry forward position history and stagnation
         child.position_history = new_position_history
@@ -304,9 +181,6 @@ class Node:
             depth += 1
 
         # If no winner, return evaluation score
-        if self.turn == -1:
-            return self.evaluate_when_goat()
-        else:
             return self.evaluate_when_tiger()
 
     def backpropagate(self, value):
