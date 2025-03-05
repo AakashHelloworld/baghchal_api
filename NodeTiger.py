@@ -60,7 +60,7 @@ class NodeTiger:
         tiger_alive = 4 - self.game.tiger_blocked_num(self.state.copy(), self.baghchalInforation['tigers'].copy())
         score += tiger_alive * 10 
 
-        score += self.baghchalInforation['capture_goat'] * 40  # Goats captured
+        score += self.baghchalInforation['capture_goat'] * 80  # Goats captured
 
         # Best tiger positions (central spots)
         best_positions = [(1, 1), (3, 1), (1, 3), (3, 3), (2, 2)]

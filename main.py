@@ -21,8 +21,8 @@ baghchal = Baghchal()
 
 args = {
     'C': 1.2,
-    'num_searches': 3000,
-    'max_depth': 10
+    'num_searches': 10000,
+    'max_depth': 12
 }
 mcts_goat = MCTS_GOAT(baghchal, args)
 mcts_tiger = MCTS_TIGER(baghchal, args)
