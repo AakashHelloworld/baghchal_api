@@ -183,7 +183,7 @@ class NodeGoat:
 
     def expand(self):
         if(len(self.expandable_moves) == 1):
-            action = self.expandable_moves[0]
+            action = self.expandable_moves.pop(0)
         else:
             action = self.expandable_moves.pop(random.randint(0, len(self.expandable_moves) - 1))
         child_state = self.state.copy()
