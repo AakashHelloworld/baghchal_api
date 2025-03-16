@@ -182,7 +182,10 @@ class NodeGoat:
         return q_value + self.args['C'] * math.sqrt(math.log(self.visit_count) / (child.visit_count ))
 
     def expand(self):
-        action = self.expandable_moves.pop(random.randint(0, len(self.expandable_moves) - 1))
+        if(self.expandable_moves.length == 1):
+            action = self.expandable_moves[0]
+        else:
+            action = self.expandable_moves.pop(random.randint(0, len(self.expandable_moves) - 1))
         child_state = self.state.copy()
         next_player = -self.player
 
