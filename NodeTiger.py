@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import math
 import random
@@ -133,13 +134,14 @@ class NodeTiger:
     def simulate(self):
 
         depth = 0
-        max_depth = 10  # Prevent infinite simulations
+        max_depth = self.args['max_depth']
 
         state = self.state.copy()
         baghchal = self.game  # Access game logic
 
         # Clone game state variables
         sim_goats = self.baghchalInforation['total_goats']
+        sim_goats_on_board = self.baghchalInforation['goats_on_board']
         sim_captured = self.baghchalInforation['capture_goat']
         sim_tigers = self.baghchalInforation['tigers'].copy()
         current_player = -self.player  # Start with opponent
@@ -169,8 +171,8 @@ class NodeTiger:
 
             # Apply move
             prev_goat_captured = sim_captured
-            state, sim_goats, _, sim_captured, sim_tigers = baghchal.apply_move(
-                state, current_player, sim_goats, 0, action, sim_captured, sim_tigers
+            state, sim_goats, sim_goats_on_board, sim_captured, sim_tigers = baghchal.apply_move(
+                state, current_player, sim_goats, sim_goats_on_board, action, sim_captured, sim_tigers
             )
 
             # 🔹 Stagnation Rule: If no goat was captured and tigers still have moves, increase stagnation
@@ -183,8 +185,16 @@ class NodeTiger:
             current_player = -current_player
             depth += 1
 
-        # If no winner, return evaluation score
-            return self.evaluate_when_tiger()
+        evaluation_node = copy.copy(self)
+        evaluation_node.state = state
+        evaluation_node.baghchalInforation = {
+            **self.baghchalInforation,
+            'total_goats': sim_goats,
+            'goats_on_board': sim_goats_on_board,
+            'capture_goat': sim_captured,
+            'tigers': sim_tigers,
+        }
+        return evaluation_node.evaluate_when_tiger()
 
     def backpropagate(self, value):
         self.value_sum += value
